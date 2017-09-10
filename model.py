@@ -22,6 +22,9 @@ for chosen_folder in ["annika_reverse", "annika_forward", "bernhard_critical_par
             lines.append((chosen_folder, line))
 
 print("loading and enhancing images.")
+
+def rgb2gray(rgb):
+    return np.dot(rgb[...,:3], [0.299, 0.587, 0.114])
 def generator(samples, batch_size=BATCH_SIZE):
     num_samples = len(samples)
     while 1:  # Loop forever so the generator never terminates
