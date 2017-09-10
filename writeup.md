@@ -7,27 +7,10 @@ install missing packages not part of anaconda distribution
     pip install python-socketio
     pip install eventlet
 
-## Notes
-
-
-
 ### Potential errors
 
 - poor predictions on training and validating -> underfitting -> more layers, more epochs
 - poor on validation -> overfitting -> dropout, fewer convolutions, fewer fully connected, collect more data & augment
-
-
-- 03 to 04: Reduced Dense from 120/50/10/1 to 120/64/1. Much less overfitting.
-- 05: Reduced correction from 0.1 to 0.05
-- 06: Removed "bernhard_forward_center2", "bernhard_reverse_center2"
-- 07: Removed "bernhard_critical_part", increased ``EPOCHS`` from 5 to 10
-- 08: ``EPOCHS`` back to 5, "annika_reverse", "annika_forward", "bernhard_critical_part",
-"bernhard_forward_center2", "bernhard_reverse_center2",
-"bernhard_forward_recovery"
-- 09: From ``lr=0.0001`` ``to lr=0.001``, added "bernhard_red", "annika_2_reverse", "annika_2_forward
-- 11: Removed 2nd ``Conv2D(64, (3, 3))``
-- 12: Removed 2 Dense layer from NVIDIA net (2 remaining (64/1))
-- 13:
 
 **Behavioral Cloning Project**
 
@@ -106,9 +89,9 @@ I added a flipped version with inverted steering angle to the training set as we
 This serves two purposes: Balancing the dataset between left and right steering
 actions and generating more training data.
 
-###Model Architecture and Training Strategy
+### Model Architecture and Training Strategy
 
-####1. Solution Design Approach
+#### 1. Solution Design Approach
 
 The overall strategy for deriving a model architecture was to ...
 
@@ -127,7 +110,7 @@ areas.
 
 At the end of the process, the vehicle is able to drive autonomously around the track without leaving the road.
 
-####2. Final Model Architecture
+#### 2. Final Model Architecture
 
 The final model architecture was a modification of the [NVIDIA net](https://arxiv.org/pdf/1604.07316v1.pdf). Instead of having 4 fully-connected
 layers with 1164/100/50 and 10 neurons at the end, I ended up using 120/32 and 1
@@ -135,18 +118,53 @@ neuron. This combination was the result of a long trial-and-error periode.
 
 Here is a visualization of the architecture (note: visualizing the architecture is optional according to the project rubric)
 
-120/32/1 doesnt work
-
-    model.add(Dense(120))
-    model.add(Dropout(0.5))
-    model.add(Dense(50))
-    model.add(Dropout(0.5))
-    model.add(Dense(10))
-    model.add(Dropout(0.5))
-    model.add(Dense(1))
-
-
 ![alt text](./writeup/NVIDIA-net_mod.png)
+
+Here's how the training went
+
+    79s - loss: 0.0581 - val_loss: 0.0550
+    Epoch 2/50
+    76s - loss: 0.0511 - val_loss: 0.0460
+    Epoch 3/50
+    75s - loss: 0.0479 - val_loss: 0.0462
+    Epoch 4/50
+    76s - loss: 0.0448 - val_loss: 0.0432
+    Epoch 5/50
+    76s - loss: 0.0422 - val_loss: 0.0382
+    Epoch 6/50
+    75s - loss: 0.0406 - val_loss: 0.0451
+    Epoch 7/50
+    74s - loss: 0.0401 - val_loss: 0.0415
+    Epoch 8/50
+    75s - loss: 0.0385 - val_loss: 0.0426
+    Epoch 9/50
+    74s - loss: 0.0388 - val_loss: 0.0331
+    Epoch 10/50
+    74s - loss: 0.0374 - val_loss: 0.0389
+    Epoch 11/50
+    75s - loss: 0.0372 - val_loss: 0.0382
+    Epoch 12/50
+    73s - loss: 0.0354 - val_loss: 0.0315
+    Epoch 13/50
+    74s - loss: 0.0349 - val_loss: 0.0350
+    Epoch 14/50
+    73s - loss: 0.0351 - val_loss: 0.0316
+    Epoch 15/50
+    75s - loss: 0.0344 - val_loss: 0.0286
+    Epoch 16/50
+    73s - loss: 0.0338 - val_loss: 0.0313
+    Epoch 17/50
+    73s - loss: 0.0333 - val_loss: 0.0305
+    Epoch 18/50
+    73s - loss: 0.0334 - val_loss: 0.0287
+    Epoch 19/50
+    73s - loss: 0.0329 - val_loss: 0.0316
+    early stopping: stopped.
+
+The graph looks like this
+
+![alt text](./writeup/14_performance.png)
+
 
 #### 3. Creation of the Training Set & Training Process
 
@@ -157,3 +175,16 @@ I finally randomly shuffled the data set and put 20% of the data into a validati
 
 I used this training data for training the model. The validation set helped determine if the model was over or under fitting. I set the number of epochs to 50 and implemented
 early stopping as mentioned above. I used an adam optimizer so that manually training the learning rate wasn't necessary.
+
+### Info for myself: failures
+
+- 03 to 04: Reduced Dense from 120/50/10/1 to 120/64/1. Much less overfitting.
+- 05: Reduced correction from 0.1 to 0.05
+- 06: Removed "bernhard_forward_center2", "bernhard_reverse_center2"
+- 07: Removed "bernhard_critical_part", increased ``EPOCHS`` from 5 to 10
+- 08: ``EPOCHS`` back to 5, "annika_reverse", "annika_forward", "bernhard_critical_part",
+"bernhard_forward_center2", "bernhard_reverse_center2",
+"bernhard_forward_recovery"
+- 09: From ``lr=0.0001`` ``to lr=0.001``, added "bernhard_red", "annika_2_reverse", "annika_2_forward
+- 11: Removed 2nd ``Conv2D(64, (3, 3))``
+- 12: Removed 2 Dense layer from NVIDIA net (2 remaining (64/1))
