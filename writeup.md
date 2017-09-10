@@ -2,11 +2,40 @@
 
 ## Prequiries
 
-install necessary packages using
+install missing packages not part of anaconda distribution
 
     pip install python-socketio
     pip install eventlet
 
+## Notes
+
+
+
+### Potential errors
+
+- poor predictions on training and validating -> underfitting -> more layers, more epochs
+- poor on validation -> overfitting -> dropout, fewer convolutions, fewer fully connected, collect more data & augment
+
+
+- 03 to 04: Reduced Dense from 120/50/10/1 to 120/64/1. Much less overfitting.
+- 05: Reduced correction from 0.1 to 0.05
+- 06: Removed "bernhard_forward_center2", "bernhard_reverse_center2"
+- 07: Removed "bernhard_critical_part", increased ``EPOCHS`` from 5 to 10
+- 08: ``EPOCHS`` back to 5, "annika_reverse", "annika_forward", "bernhard_critical_part",
+"bernhard_forward_center2", "bernhard_reverse_center2",
+"bernhard_forward_recovery"
+- 09: From ``lr=0.0001`` ``to lr=0.001``, added "bernhard_red", "annika_2_reverse", "annika_2_forward
+- 11: Removed 2nd ``Conv2D(64, (3, 3))``
+- 12: Removed 2 Dense layer from NVIDIA net (2 remaining (64/1))
+
+
+# own enhancemets
+
+dropout
+early stopping
+
+
+- based on [NVIDIA net](https://arxiv.org/pdf/1604.07316v1.pdf)
 ##Writeup Template
 
 ###You can use this file as a template for your writeup if you want to submit it as a markdown file, but feel free to use some other method and submit a pdf if you prefer.

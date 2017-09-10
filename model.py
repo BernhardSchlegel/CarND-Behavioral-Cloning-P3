@@ -7,10 +7,14 @@ import sklearn
 
 # Settings
 BATCH_SIZE = 32
-EPOCHS = 5
+EPOCHS = 50
+LEARNING_RATE = 0.001
 
 lines = []
-for chosen_folder in ["annika_reverse", "annika_forward"]:
+for chosen_folder in ["annika_reverse", "annika_forward", "bernhard_critical_part",
+                      "bernhard_forward_center2", "bernhard_reverse_center2",
+                      "bernhard_forward_recovery",
+                      "bernhard_red", "annika_2_reverse", "annika_2_forward"]:
     with open("./data/" + chosen_folder + "/driving_log.csv") as csvfile:
         reader = csv.reader(csvfile)
 
@@ -28,7 +32,7 @@ def generator(samples, batch_size=BATCH_SIZE):
             images = []
             angles = []
             for chosen_folder, line in batch_samples:
-                correction = 0.1  # this is a parameter to tune
+                correction = 0.05  # this is a parameter to tune
                 for i in range(3):
                     source_path = line[i]
                     filename = os.path.split(source_path)[-1]  # source_path.split("/")[-1]
@@ -70,30 +74,58 @@ train_generator = generator(train_samples, batch_size=BATCH_SIZE)
 validation_generator = generator(validation_samples, batch_size=BATCH_SIZE)
 
 print("importing keras")
+from keras import optimizers
 from keras.models import Sequential
 from keras.layers import Flatten, Dense, Lambda, Conv2D, Activation, Dropout, Cropping2D
 from keras.layers.pooling import MaxPooling2D
+from keras import optimizers # to enable custom optimizer
 
 print("building model")
 model = None
 
-architecture = "NVIDIA"
+architecture = "NVIDIA_mod"
 
 if architecture == "NVIDIA":
     model = Sequential()
     model.add(Lambda(lambda x: x / 255.0 - 0.5, input_shape=(160, 320, 3)))
     model.add(Cropping2D(cropping=((70, 25), (0, 0))))
     model.add(Conv2D(24, (5, 5), strides=(2, 2), activation="relu"))
+    model.add(Dropout(0.5))
     model.add(Conv2D(36, (5, 5), strides=(2, 2), activation="relu"))
+    model.add(Dropout(0.5))
     model.add(Conv2D(48, (5, 5), strides=(2, 2), activation="relu"))
+    model.add(Dropout(0.5))
     model.add(Conv2D(64, (3, 3), activation="relu"))
+    model.add(Dropout(0.5))
     model.add(Conv2D(64, (3, 3), activation="relu"))
+    model.add(Dropout(0.5))
     model.add(Flatten())
-    model.add(Dense(100))
+    model.add(Dense(120))
     model.add(Dense(50))
     model.add(Dense(10))
     model.add(Dense(1))
-
+elif architecture == "NVIDIA_mod":
+    model = Sequential()
+    model.add(Lambda(lambda x: x / 255.0 - 0.5, input_shape=(160, 320, 3)))
+    model.add(Cropping2D(cropping=((70, 25), (0, 0))))
+    model.add(Conv2D(24, (5, 5), strides=(2, 2), activation="relu"))
+    model.add(Dropout(0.5))
+    model.add(Conv2D(36, (5, 5), strides=(2, 2), activation="relu"))
+    model.add(Dropout(0.5))
+    model.add(Conv2D(48, (5, 5), strides=(2, 2), activation="relu"))
+    model.add(Dropout(0.5))
+    model.add(Conv2D(64, (3, 3), activation="relu"))
+    model.add(Dropout(0.5))
+    model.add(Conv2D(64, (3, 3), activation="relu"))
+    model.add(Dropout(0.5))
+    model.add(Flatten())
+    model.add(Dense(120))
+    model.add(Dropout(0.5))
+    model.add(Dense(50))
+    model.add(Dropout(0.5))
+    model.add(Dense(10))
+    model.add(Dropout(0.5))
+    model.add(Dense(1))
 elif architecture == "LeNET":
     model = Sequential()
 
@@ -116,12 +148,19 @@ elif architecture == "LeNET":
 
 print("starting training")
 import matplotlib.pyplot as plt
-model.compile(loss='mse', optimizer='adam')
+my_adam = optimizers.Adam(lr=LEARNING_RATE)
+model.compile(loss='mse', optimizer=my_adam)
+
+from keras.callbacks import EarlyStopping
+my_callbacks = [
+    EarlyStopping(monitor='val_loss', min_delta=0.001, patience=3, verbose=0, mode='auto')
+]
+
 history_object = model.fit_generator(train_generator,
-                                     steps_per_epoch=len(train_samples),
+                                     steps_per_epoch=len(train_samples)/BATCH_SIZE,
                                      validation_data=validation_generator,
-                                     validation_steps=len(validation_samples),
-                                     epochs=5, verbose=1)
+                                     validation_steps=len(validation_samples)/BATCH_SIZE ,
+                                     epochs=EPOCHS, verbose=2, callbacks=my_callbacks)
 ### print the keys contained in the history object
 print(history_object.history.keys())
 
