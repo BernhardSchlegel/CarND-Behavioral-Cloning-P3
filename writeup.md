@@ -168,7 +168,38 @@ The graph looks like this
 
 #### 3. Creation of the Training Set & Training Process
 
-After the collection (as described aboce) process finished, I had roughly 6500
+To capture good driving behavior, I first recorded two laps going forward and
+two laps going backwards on track one using center lane driving.
+Here is an example image of center lane driving:
+
+![alt text](./writeup/center.jpg)
+
+I then recorded the vehicle recovering from the left side and right sides of the road back to center so that the vehicle would learn to .... These images show what a recovery looks like starting from ... :
+
+![alt text](./writeup/recovery.jpg)
+
+Then I repeated this process on track two in order to get more data points.
+
+After the first modelling attemps, I created additional training data at the
+critical parts of the track. At this "critical" parts the model had a hard time
+to stay on track. These were especially the red/white curbs and the part where
+the dirt road exit was on the right.
+
+![alt text](./writeup/critical_curb.jpg)![alt text](./writeup/critical_dust.jpg)
+
+I also let a different person drive to generate different steering patterns. To
+get a smoother steering angle, I used a XBOX 360 controller analog-pad to steer
+(instead of a binary WASD control).
+
+To augment the data sat and to balance the proportion of steering movements to
+the left and to the right, I also flipped images and angles. For example,
+here is an image that has then been flipped:
+
+![alt text](./writeup/center.jpg)
+![alt text](./writeup/center_flipped.jpg)
+
+
+After the collection (as described above) process finished, I had roughly 6500
  number of data points.
 
 I finally randomly shuffled the data set and put 20% of the data into a validation set.

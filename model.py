@@ -4,17 +4,22 @@ import numpy as np
 import os
 from sklearn.utils import shuffle
 import sklearn
+import matplotlib.pyplot as plt
+
+import common
 
 # Settings
 BATCH_SIZE = 32
-EPOCHS = 50
-LEARNING_RATE = 0.001
+EPOCHS = 100
+LEARNING_RATE = 0.0001
+REGULARIZATION = 0.001
 
 lines = []
-for chosen_folder in ["annika_reverse", "annika_forward", "bernhard_critical_part",
-                      "bernhard_forward_center2", "bernhard_reverse_center2",
+for chosen_folder in ["udacity",
                       "bernhard_forward_recovery",
-                      "bernhard_red", "annika_2_reverse", "annika_2_forward"]:
+                      "bernhard_red",
+                      "bernhard_critical_long", "bernhard_recovery_2",
+                      "bernhard_critical2"]:
     with open("./data/" + chosen_folder + "/driving_log.csv") as csvfile:
         reader = csv.reader(csvfile)
 
@@ -23,8 +28,16 @@ for chosen_folder in ["annika_reverse", "annika_forward", "bernhard_critical_par
 
 print("loading and enhancing images.")
 
-def rgb2gray(rgb):
-    return np.dot(rgb[...,:3], [0.299, 0.587, 0.114])
+def augment_brightness_camera_images(image):
+    image1 = cv2.cvtColor(image,cv2.COLOR_RGB2HSV)
+    image1 = np.array(image1, dtype = np.float64)
+    random_bright = .5+np.random.uniform()
+    image1[:,:,2] = image1[:,:,2]*random_bright
+    image1[:,:,2][image1[:,:,2]>255]  = 255
+    image1 = np.array(image1, dtype = np.uint8)
+    image1 = cv2.cvtColor(image1,cv2.COLOR_HSV2RGB)
+    return image1
+
 def generator(samples, batch_size=BATCH_SIZE):
     num_samples = len(samples)
     while 1:  # Loop forever so the generator never terminates
@@ -41,6 +54,9 @@ def generator(samples, batch_size=BATCH_SIZE):
                     filename = os.path.split(source_path)[-1]  # source_path.split("/")[-1]
                     current_path = "./data/" + chosen_folder + "/IMG/" + filename
                     image = cv2.imread(current_path)
+
+                    # convert from RGB to YUV
+                    image = common.preprocess_image(image, mode="train")
 
                     measurement = float(line[3])
                     if i is 0:
@@ -68,6 +84,40 @@ def generator(samples, batch_size=BATCH_SIZE):
             y_train = np.array(angles)
             yield sklearn.utils.shuffle(X_train, y_train)
 
+# balancing the distribution
+def plot_hist_get_angles(lines, num_bins=21):
+
+    angles = []
+    for elem in lines:
+        angles.append(float(elem[1][3]))
+    plt.hist(angles, bins=num_bins)  # make sure that it's a odd number
+    plt.show(block=False)
+
+    return angles
+
+num_bins = 25
+angles = plot_hist_get_angles(lines, num_bins=num_bins)
+target_elements_per_bin = len(angles) / num_bins
+hist, bins = np.histogram(angles, np.dot(list(range(-12, 13)), 0.1))
+# calculate the probablity to be kept for each bin
+keep_probalities = np.dot(target_elements_per_bin, 1 / hist)
+
+# remove according to probability
+keep_list = []
+for i in range(len(angles)):
+    keep = True
+    for j in range(num_bins):
+        if angles[i] > bins[j] and angles[i] <= bins[j+1]:
+            # delete from X and y with probability 1 - keep_probs[j]
+            if np.random.rand() > keep_probalities[j]:
+                keep = False
+                break
+    keep_list.append(keep)
+
+from itertools import compress
+lines = list(compress(lines, keep_list))
+plot_hist_get_angles(lines)
+
 # split samples
 from sklearn.model_selection import train_test_split
 train_samples, validation_samples = train_test_split(lines, test_size=0.2)
@@ -79,14 +129,22 @@ validation_generator = generator(validation_samples, batch_size=BATCH_SIZE)
 print("importing keras")
 from keras import optimizers
 from keras.models import Sequential
-from keras.layers import Flatten, Dense, Lambda, Conv2D, Activation, Dropout, Cropping2D
+from keras.layers import Flatten, Dense, Lambda, Conv2D, Activation, Dropout, Cropping2D, ELU
 from keras.layers.pooling import MaxPooling2D
 from keras import optimizers # to enable custom optimizer
+from keras import regularizers
 
 print("building model")
 model = None
 
 architecture = "NVIDIA_mod"
+
+IMG_DIM_Y = 160 #66       # 160
+IMG_DIM_X = 320 #200      # 320
+IMG_CROP_Y_TOP = 70 #38  # 70
+IMG_CROP_Y_BOT = 25 #10  # 25
+
+
 
 if architecture == "NVIDIA":
     model = Sequential()
@@ -109,17 +167,17 @@ if architecture == "NVIDIA":
     model.add(Dense(1))
 elif architecture == "NVIDIA_mod":
     model = Sequential()
-    model.add(Lambda(lambda x: x / 255.0 - 0.5, input_shape=(160, 320, 3)))
-    model.add(Cropping2D(cropping=((70, 25), (0, 0))))
-    model.add(Conv2D(24, (5, 5), strides=(2, 2), activation="relu"))
+    model.add(Lambda(lambda x: x / 255.0 - 0.5, input_shape=(IMG_DIM_Y, IMG_DIM_X, 3)))
+    model.add(Cropping2D(cropping=((IMG_CROP_Y_TOP, IMG_CROP_Y_BOT), (0, 0))))
+    model.add(Conv2D(24, (5, 5), strides=(2, 2), activation="elu", kernel_regularizer=regularizers.l2(REGULARIZATION)))
     model.add(Dropout(0.5))
-    model.add(Conv2D(36, (5, 5), strides=(2, 2), activation="relu"))
+    model.add(Conv2D(36, (5, 5), strides=(2, 2), activation="elu", kernel_regularizer=regularizers.l2(REGULARIZATION)))
     model.add(Dropout(0.5))
-    model.add(Conv2D(48, (5, 5), strides=(2, 2), activation="relu"))
+    model.add(Conv2D(48, (5, 5), strides=(2, 2), activation="elu", kernel_regularizer=regularizers.l2(REGULARIZATION)))
     model.add(Dropout(0.5))
-    model.add(Conv2D(64, (3, 3), activation="relu"))
+    model.add(Conv2D(64, (3, 3), activation="elu", kernel_regularizer=regularizers.l2(REGULARIZATION)))
     model.add(Dropout(0.5))
-    model.add(Conv2D(64, (3, 3), activation="relu"))
+    model.add(Conv2D(64, (3, 3), activation="elu", kernel_regularizer=regularizers.l2(REGULARIZATION)))
     model.add(Dropout(0.5))
     model.add(Flatten())
     model.add(Dense(120))
@@ -150,13 +208,12 @@ elif architecture == "LeNET":
     model.add(Dense(1))
 
 print("starting training")
-import matplotlib.pyplot as plt
 my_adam = optimizers.Adam(lr=LEARNING_RATE)
 model.compile(loss='mse', optimizer=my_adam)
 
 from keras.callbacks import EarlyStopping
 my_callbacks = [
-    EarlyStopping(monitor='val_loss', min_delta=0.001, patience=3, verbose=0, mode='auto')
+    EarlyStopping(monitor='val_loss', min_delta=0.001, patience=5, verbose=0, mode='auto')
 ]
 
 history_object = model.fit_generator(train_generator,
@@ -168,6 +225,7 @@ history_object = model.fit_generator(train_generator,
 print(history_object.history.keys())
 
 ### plot the training and validation loss for each epoch
+plt.figure(2)
 plt.plot(history_object.history['loss'])
 plt.plot(history_object.history['val_loss'])
 plt.title('model mean squared error loss')
@@ -175,6 +233,7 @@ plt.ylabel('mean squared error loss')
 plt.xlabel('epoch')
 plt.legend(['training set', 'validation set'], loc='upper right')
 plt.show()
+plt.savefig('training.png')
 
 
 model.save("model.h5")
