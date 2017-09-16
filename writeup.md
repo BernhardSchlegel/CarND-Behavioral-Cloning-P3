@@ -60,7 +60,7 @@ My model is based on the [NVIDIA net](https://arxiv.org/pdf/1604.07316v1.pdf)
 which was developed specifically for autonomous driving tasks. The original
 NN looked like follows:
 
-![test](./writeup/NVIDIA-net.png)
+![test](./writeup/NVIDIA-net.PNG)
 
 The model includes ELU layers to introduce nonlinearity, and the data is normalized in the model using a Keras lambda layer. Also, images are cropped: 70px at the top
 of the images (unnecessary sky, trees, etc.) and 25px at the bottom (hood of
