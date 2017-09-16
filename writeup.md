@@ -1,5 +1,15 @@
 #**Behavioral Cloning**
 
+## TL;DR Lessons learned
+
+- Final training was done using "udacity" and own "soft_recovery" (Where I drove
+  from the side (**not** the dirt) of the track to the middle). Instead of adding
+  more and more data **check all other parameters first**. More trainingdata just
+  increases the iteration time and does not improve a shitty classifier.
+- Dropoff does not work in this case - car keeps falling off.
+- Regularization is good.
+- Auto-stoping is great.
+
 ## Prequiries
 
 install missing packages not part of anaconda distribution
@@ -52,26 +62,29 @@ NN looked like follows:
 
 ![test](./writeup/NVIDIA-net.png)
 
-The model includes RELU layers to introduce nonlinearity, and the data is normalized in the model using a Keras lambda layer. Also, images are cropped: 70px at the top
+The model includes ELU layers to introduce nonlinearity, and the data is normalized in the model using a Keras lambda layer. Also, images are cropped: 70px at the top
 of the images (unnecessary sky, trees, etc.) and 25px at the bottom (hood of
 the car) are not used for training, since carrying no helpful (or even
 distracting) information.
 
 #### 2. Attempts to reduce overfitting in the model
 
-To prevent overfitting like displayed in the following image, I implemented
-**dropout** after every Convolution and fully-connected network layer ![test](./writeup/01_performance.png)
+To prevent overfitting like displayed in the following image, I tried out **dropout** (but it didn't work) after every Convolution and fully-connected network layer !
 
 The model was trained and validated on different data sets to ensure that the model was not overfitting. The model was tested by running it through the simulator and ensuring that the vehicle could stay on the track.
 
 #### 3. Model parameter tuning
 
-The model used an adam optimizer that implements **weight decay**, so the learning rate was not tuned manually. An initial `LEARNING_RATE = 0.001` yielded best results.
+The model used an adam optimizer that implements **weight decay**, so the learning rate was not tuned manually. An initial `LEARNING_RATE = 0.0001` yielded best results.
 
 #### 4. Appropriate training data
 
 Training data was chosen to keep the vehicle driving on the road. I used a combination of
 
+- the udacity dataset
+- a dataset of myself driving from the side to the center of the road (recovery)
+
+What I recorded (and didnt end up using)
 - a different person drove 2 laps on track 1 forward.
 - a different person drove 2 laps on track 1 backwards.
 - a different person drove 2 laps on track 2 forward.
@@ -84,7 +97,7 @@ Training data was chosen to keep the vehicle driving on the road. I used a combi
 - I'm driving around curves when red/white road marking is present.
 
 Each stored in a separate sub-folder to allow to use all, or only a subset of
-training patterns. For training, I used all of them. For each training sample,
+training patterns. For each training sample,
 I added a flipped version with inverted steering angle to the training set as well.
 This serves two purposes: Balancing the dataset between left and right steering
 actions and generating more training data.
@@ -93,16 +106,19 @@ actions and generating more training data.
 
 #### 1. Solution Design Approach
 
-The overall strategy for deriving a model architecture was to ...
+The overall strategy for deriving a model architecture was to use a Deep neural
+network that already prooved itself suitable on simiar data.
 
-My first step was to use a convolution neural network model similar to the ... I thought this model might be appropriate because ...
+My first step was to use a convolution neural network model similar to the NVIDIA-Net.
+I thought this model might be appropriate because it was developed for autonomous
+driving.
 
 In order to gauge how well the model was working, I split my image and steering angle data into a training and validation set. I found that my first model had a low mean squared error on the training set but a high mean squared error on the validation set. This implied that the model was overfitting.
 
 To combat the overfitting, I implemented
 **dropout** after every Convolution and fully-connected network layer.
 
-Then I implemented **early stopping** to stop training when the performance converges (and neither earlier wasting model performance nor later wasting time). This is configuration `EarlyStopping(monitor='val_loss', min_delta=0.001, patience=3, verbose=0, mode='auto')` I used.
+Then I implemented **early stopping** to stop training when the performance converges (and neither earlier wasting model performance nor later wasting time). This is configuration `EarlyStopping(monitor='val_loss', min_delta=0.001, patience=5, verbose=0, mode='auto')` I used.
 
 The final step was to run the simulator to see how well the car was driving around track one. There were a few spots where the vehicle fell off the track. To improve the driving behavior in these cases, I recorded myself passing them a few times. Examples were
 the exit to the dirt road and some places where the street was marked by white/red
@@ -113,83 +129,30 @@ At the end of the process, the vehicle is able to drive autonomously around the 
 #### 2. Final Model Architecture
 
 The final model architecture was a modification of the [NVIDIA net](https://arxiv.org/pdf/1604.07316v1.pdf). Instead of having 4 fully-connected
-layers with 1164/100/50 and 10 neurons at the end, I ended up using 120/32 and 1
-neuron. This combination was the result of a long trial-and-error periode.
+layers with 1164/100/50 and 10 neurons at the end, I ended up using 120//50/10 and 1
+neuron. This combination was the result of a long trial-and-error periode. I **DID NOT** use dropoff.
 
 Here is a visualization of the architecture (note: visualizing the architecture is optional according to the project rubric)
 
 ![alt text](./writeup/NVIDIA-net_mod.png)
 
-Here's how the training went
+The training took 25 minutes.
 
-    79s - loss: 0.0581 - val_loss: 0.0550
-    Epoch 2/50
-    76s - loss: 0.0511 - val_loss: 0.0460
-    Epoch 3/50
-    75s - loss: 0.0479 - val_loss: 0.0462
-    Epoch 4/50
-    76s - loss: 0.0448 - val_loss: 0.0432
-    Epoch 5/50
-    76s - loss: 0.0422 - val_loss: 0.0382
-    Epoch 6/50
-    75s - loss: 0.0406 - val_loss: 0.0451
-    Epoch 7/50
-    74s - loss: 0.0401 - val_loss: 0.0415
-    Epoch 8/50
-    75s - loss: 0.0385 - val_loss: 0.0426
-    Epoch 9/50
-    74s - loss: 0.0388 - val_loss: 0.0331
-    Epoch 10/50
-    74s - loss: 0.0374 - val_loss: 0.0389
-    Epoch 11/50
-    75s - loss: 0.0372 - val_loss: 0.0382
-    Epoch 12/50
-    73s - loss: 0.0354 - val_loss: 0.0315
-    Epoch 13/50
-    74s - loss: 0.0349 - val_loss: 0.0350
-    Epoch 14/50
-    73s - loss: 0.0351 - val_loss: 0.0316
-    Epoch 15/50
-    75s - loss: 0.0344 - val_loss: 0.0286
-    Epoch 16/50
-    73s - loss: 0.0338 - val_loss: 0.0313
-    Epoch 17/50
-    73s - loss: 0.0333 - val_loss: 0.0305
-    Epoch 18/50
-    73s - loss: 0.0334 - val_loss: 0.0287
-    Epoch 19/50
-    73s - loss: 0.0329 - val_loss: 0.0316
-    early stopping: stopped.
-
-The graph looks like this
-
-![alt text](./writeup/14_performance.png)
-
+![alt text](./writeup/last.png)
 
 #### 3. Creation of the Training Set & Training Process
 
-To capture good driving behavior, I first recorded two laps going forward and
-two laps going backwards on track one using center lane driving.
-Here is an example image of center lane driving:
+The udacity dataset already existed.
 
-![alt text](./writeup/center.jpg)
-
-I then recorded the vehicle recovering from the left side and right sides of the road back to center so that the vehicle would learn to .... These images show what a recovery looks like starting from ... :
+I then recorded the vehicle recovering from the left side and right sides of the
+road back to center for two laps so that the vehicle would learn to steer back to the center
+These images show what a recovery looks like starting from the curbs.
 
 ![alt text](./writeup/recovery.jpg)
 
 Then I repeated this process on track two in order to get more data points.
 
-After the first modelling attemps, I created additional training data at the
-critical parts of the track. At this "critical" parts the model had a hard time
-to stay on track. These were especially the red/white curbs and the part where
-the dirt road exit was on the right.
-
-![alt text](./writeup/critical_curb.jpg)![alt text](./writeup/critical_dust.jpg)
-
-I also let a different person drive to generate different steering patterns. To
-get a smoother steering angle, I used a XBOX 360 controller analog-pad to steer
-(instead of a binary WASD control).
+I used a XBOX 360 controller analog-pad to steer (instead of a binary WASD control).
 
 To augment the data sat and to balance the proportion of steering movements to
 the left and to the right, I also flipped images and angles. For example,
@@ -198,9 +161,12 @@ here is an image that has then been flipped:
 ![alt text](./writeup/center.jpg)
 ![alt text](./writeup/center_flipped.jpg)
 
+I also balanced the dataset by calculating the avery number of samples per steering
+angle bin. Each sample from each bin had a probability to be kept of
+`avg_per_bin / n_per_bin` to cut away all the "zero" steering angle samples
+(blue is before, orange after):
 
-After the collection (as described above) process finished, I had roughly 6500
- number of data points.
+![alt text](./writeup/dealing_with_imbalance.png)
 
 I finally randomly shuffled the data set and put 20% of the data into a validation set.
 

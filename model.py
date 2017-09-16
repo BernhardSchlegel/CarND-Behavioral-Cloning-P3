@@ -13,13 +13,11 @@ BATCH_SIZE = 32
 EPOCHS = 100
 LEARNING_RATE = 0.0001
 REGULARIZATION = 0.001
+STEERING_CORRECTION = 0.25  # this is a parameter to tune
 
 lines = []
 for chosen_folder in ["udacity",
-                      "bernhard_forward_recovery",
-                      "bernhard_red",
-                      "bernhard_critical_long", "bernhard_recovery_2",
-                      "bernhard_critical2"]:
+                      "bernhard_soft_recovery"]:
     with open("./data/" + chosen_folder + "/driving_log.csv") as csvfile:
         reader = csv.reader(csvfile)
 
@@ -48,7 +46,6 @@ def generator(samples, batch_size=BATCH_SIZE):
             images = []
             angles = []
             for chosen_folder, line in batch_samples:
-                correction = 0.05  # this is a parameter to tune
                 for i in range(3):
                     source_path = line[i]
                     filename = os.path.split(source_path)[-1]  # source_path.split("/")[-1]
@@ -64,10 +61,10 @@ def generator(samples, batch_size=BATCH_SIZE):
                         measurement_corrected = measurement
                     elif i is 1:
                         # left cam
-                        measurement_corrected = measurement + correction
+                        measurement_corrected = measurement + STEERING_CORRECTION
                     elif i is 2:
                         # right cam
-                        measurement_corrected = measurement - correction
+                        measurement_corrected = measurement - STEERING_CORRECTION
 
                     # append original
                     images.append(image)
@@ -92,6 +89,7 @@ def plot_hist_get_angles(lines, num_bins=21):
         angles.append(float(elem[1][3]))
     plt.hist(angles, bins=num_bins)  # make sure that it's a odd number
     plt.show(block=False)
+    plt.savefig('norm.png')
 
     return angles
 
@@ -170,22 +168,22 @@ elif architecture == "NVIDIA_mod":
     model.add(Lambda(lambda x: x / 255.0 - 0.5, input_shape=(IMG_DIM_Y, IMG_DIM_X, 3)))
     model.add(Cropping2D(cropping=((IMG_CROP_Y_TOP, IMG_CROP_Y_BOT), (0, 0))))
     model.add(Conv2D(24, (5, 5), strides=(2, 2), activation="elu", kernel_regularizer=regularizers.l2(REGULARIZATION)))
-    model.add(Dropout(0.5))
+    #model.add(Dropout(0.5))
     model.add(Conv2D(36, (5, 5), strides=(2, 2), activation="elu", kernel_regularizer=regularizers.l2(REGULARIZATION)))
-    model.add(Dropout(0.5))
+    #model.add(Dropout(0.5))
     model.add(Conv2D(48, (5, 5), strides=(2, 2), activation="elu", kernel_regularizer=regularizers.l2(REGULARIZATION)))
-    model.add(Dropout(0.5))
+    #model.add(Dropout(0.5))
     model.add(Conv2D(64, (3, 3), activation="elu", kernel_regularizer=regularizers.l2(REGULARIZATION)))
-    model.add(Dropout(0.5))
+    #model.add(Dropout(0.5))
     model.add(Conv2D(64, (3, 3), activation="elu", kernel_regularizer=regularizers.l2(REGULARIZATION)))
-    model.add(Dropout(0.5))
+    #model.add(Dropout(0.5))
     model.add(Flatten())
     model.add(Dense(120))
-    model.add(Dropout(0.5))
+    #model.add(Dropout(0.5))
     model.add(Dense(50))
-    model.add(Dropout(0.5))
+    #model.add(Dropout(0.5))
     model.add(Dense(10))
-    model.add(Dropout(0.5))
+    #model.add(Dropout(0.5))
     model.add(Dense(1))
 elif architecture == "LeNET":
     model = Sequential()
