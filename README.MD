@@ -1,4 +1,4 @@
-#**Behavioral Cloning**
+# Behavioral Cloning
 
 ## TL;DR Lessons learned
 
